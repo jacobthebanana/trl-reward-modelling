@@ -144,6 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_batch_size", required=True, type=int)
     parser.add_argument("--train_block_size", required=True, type=int)
     parser.add_argument("--train_prng_seed", required=False, type=int, default=0)
+    parser.add_argument("--early_stop_threshold", required=False, type=int, default=-1)
     parser.add_argument("--num_epochs", required=False, type=float, default=1.0)
     args = parser.parse_args()
 
@@ -153,6 +154,7 @@ if __name__ == "__main__":
     train_batch_size: int = args.train_batch_size
     block_size: int = args.train_block_size
     train_prng_seed: int = args.train_prng_seed
+    early_stop_threshold: int = args.early_stop_threshold
     num_epochs: float = args.num_epochs
 
     hf_tokenizer_name: str = args.tokenizer
@@ -205,6 +207,7 @@ if __name__ == "__main__":
         init_train_dataloader(), total=num_train_batches, desc="Training", ncols=80
     ):
         stats = {}
+        prev_losses = []
 
         if train_state.step % EVAL_EVERY == 0:
             eval_loss, eval_accuracy = evaluate_reward_model(
@@ -215,6 +218,11 @@ if __name__ == "__main__":
             )
             stats["validation_loss"] = eval_loss
             stats["validation_accuracy"] = eval_accuracy
+
+            if len(prev_losses) > 0 and early_stop_threshold > 0:
+                if eval_loss > max(prev_losses[-early_stop_threshold:]):
+                    wandb.log(stats)
+                    wandb.finish()
 
         train_state, (loss, accuracy) = jit_train_step(train_state, batch)
         stats["train_loss"] = loss.item()
