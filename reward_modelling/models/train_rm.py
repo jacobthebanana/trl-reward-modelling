@@ -31,10 +31,6 @@ EVAL_EVERY: int = int(os.environ.get("EVAL_EVERY", 125))
 
 def _get_reward_from_projection_logits(logits: jnp.ndarray):
     """
-    Apply softmax over selected keyword input ids.
-    For example, if the keyword is "Yes", the "reward" will be the logit of
-    "Yes" after the word embedding projection.
-
     Input shapes:
     - logits: (batch, token)
 
